@@ -1,15 +1,42 @@
 class BirdsController < ApplicationController
   rescue_from ActiveRecord::RecordNotFound, with: :render_not_found_response
 
+  rescue_from ActiveRecord::RecordInvalid, with: :render_unprocessable_entity_response
+
   # GET /birds
   def index
     birds = Bird.all
     render json: birds
   end
 
-  # POST /birds
+  # localhost:3000/birds
+  # raw/json;  Content-Type: application/json
+  # {
+  #   "species": "Archilochus colubris"
+  # }
+
+  # POST /birds (previous but doesn't tell us why a POST failed...)
+  # def create
+  #   bird = Bird.create(bird_params)
+  #   render json: bird, status: :created
+  # end
+
+  # POST /birds with additional context should a POST failed via Postman
+
+  # if/else
+  # def create
+  #   bird = Bird.create(bird_params)
+  #   if bird.valid?
+  #     render json: bird, status: :created
+  #   else
+  #     render json: { errors: bird.errors }, status: :unprocessable_entity
+  #   end
+  # end
+
+  # using ActiveRecord::RecordInvalid exception class along with create! or update!; using rescue
   def create
-    bird = Bird.create(bird_params)
+    # create! exceptions will be handled by the rescue_from ActiveRecord::RecordInvalid code
+    bird = Bird.create!(bird_params)
     render json: bird, status: :created
   end
 
@@ -20,9 +47,16 @@ class BirdsController < ApplicationController
   end
 
   # PATCH /birds/:id
+  # def update
+  #   bird = find_bird
+  #   bird.update(bird_params)
+  #   render json: bird
+  # end
+
   def update
     bird = find_bird
-    bird.update(bird_params)
+    # update! exceptions will be handled by the rescue_from ActiveRecord::RecordInvalid code
+    bird.update!(bird_params)
     render json: bird
   end
 
@@ -43,8 +77,12 @@ class BirdsController < ApplicationController
     params.permit(:name, :species, :likes)
   end
 
-  def render_not_found_response
-    render json: { error: "Bird not found" }, status: :not_found
+  # def render_not_found_response
+  #   render json: { error: "Bird not found" }, status: :not_found
+  # end
+
+  def render_unprocessable_entity_response(invalid)
+    render json: { errors: invalid.record.errors }, status: :unprocessable_entity
   end
 
 end
